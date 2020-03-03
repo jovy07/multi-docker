@@ -1,0 +1,68 @@
+version: '3'
+services: 
+  postgres:
+    image: 'postgres:latest'
+    environment: 
+      - POSTGRES_PASSWORD=mysecretpassword 
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    networks: 
+      - some-net
+  redis:
+    image: 'redis:latest'
+    networks: 
+      - some-net
+  nginx:
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports: 
+      - 8081:80
+    networks: 
+      - some-net
+  api:
+    command: ["./wait-for-it.sh","-t","20","postgres:5432","--","npm","run","start"] 
+    build: 
+      dockerfile: Dockerfile.dev
+      context: ./server
+    volumes:
+      - /app/node_modules
+      - ./server:/app
+    depends_on: 
+      - postgres
+    environment: 
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=mysecretpassword
+      - PGPORT=5432
+    networks: 
+      - some-net
+  client:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes: 
+      - /app/node_modules
+      - ./client:/app
+    networks: 
+      - some-net
+  worker:
+    command: ["./wait-for-it.sh","-t","20","redis:6379","--","npm","run","start"] 
+    build: 
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes: 
+      - /app/node_modules
+      - ./worker:/app
+    environment: 
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks: 
+      - some-net
+networks:
+  some-net:
+    driver: bridge
