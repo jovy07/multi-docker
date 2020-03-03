@@ -9,7 +9,7 @@ script:
   - docker run jovanstojanov/react-test npm test -- --coverage
 
 after_success:
-  - docker build -t jovanstojanov/multi-client ./client
+  - docker build -t jovanstojanov/multi-client -f ./client/Dockerfile .
   - docker build -t jovanstojanov/multi-nginx ./nginx
   - docker build -t jovanstojanov/multi-server ./server 
   - docker build -t jovanstojanov/multi-worker ./worker 
